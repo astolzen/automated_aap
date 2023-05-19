@@ -1,0 +1,5 @@
+---
+collections:
+- awx.awx
+- community.general
+- kubernetes.core

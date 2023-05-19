@@ -1,0 +1,44 @@
+cfg_file: "kubeconfig.yml" # Kubeconfig of your OCP CLuster
+
+
+awxsetup:
+  name: << AAP Name >> 
+  baseurl: << your OCP base URL here, like apps.ruby.rhepds.com >>
+  namespace: << Name of the AAP Namespace in your OCP Setup >>
+
+org:
+  name: << Your ORG to be created >>
+  desc: << Description of your ORG >>
+
+project:
+  name: << Your Project to be created >>
+  desc: << Your Project Description >>
+  scm: << SCM URL of your Project >>
+
+# Optional: Create an EE. This example is based on Gitlab as a SCM, where the SCM-Credentials are the same as the Container Registry Credentials.
+ee:
+  name: << Your EE Name >>
+  registry: << Registry URL >>
+  image: << EE Image URL >>
+
+# MISSING! Create Inventoriy definition !
+
+jobtmpl:
+  job1: # <- Name of Job-Template 
+    name: << First Job >>
+    type: "run"
+    inv: << Inventory >> 
+    pb: << Playbook.yml >>
+    exv: # Extra Variables 
+      extra_var1: << Variable Content >>
+      var2: << Variable Content >>
+  job2:
+    name: << Second Job >>
+    type: "run"
+    inv: << Inventory >> 
+    pb: << Playbook.yml >>
+    exv:
+      extra_var1: << Variable Content >>
+      var2: << Variable Content >>
+# Add Jobs into << jobtmpl >> as needed
+# Optional: Create Variable and code for Workflow Templates

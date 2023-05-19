@@ -1,0 +1,91 @@
+# When using this with AAP, you will get warnings becaus you run the collection awx.awx
+# For a fully supported Setp, use the collection "ansible.controller" instead of "awx.awx"
+
+- name: Create Organization
+  awx.awx.organization:
+    controller_host: "https://{{ awxsetup.name }}-{{ awxsetup.namespace }}.{{ awxsetup.baseurl }}"
+    controller_username: "admin"
+    controller_password: "{{ awx_admin_pwd }}"
+    validate_certs: false
+    name: "{{ org.name }}"
+    description: "{{ org.desc }}"
+    state: present
+
+- name: Set SCM Credential
+  awx.awx.credential:
+    controller_host: "https://{{ awxsetup.name }}-{{ awxsetup.namespace }}.{{ awxsetup.baseurl }}"
+    controller_username: "admin"
+    controller_password: "{{ awx_admin_pwd }}"
+    validate_certs: false
+    name: "{{ credential.scm.name }}"
+    organization: "{{ org.name }}"
+    state: present
+    credential_type: Source Control
+    inputs:
+      username: "{{ credential.scm.user }}"
+      password: "{{ credential.scm.pwd }}"
+
+#In this example, the Credentials for SCM and Registry are the same ...
+- name: Set Registry Credential
+  awx.awx.credential:
+    controller_host: "https://{{ awxsetup.name }}-{{ awxsetup.namespace }}.{{ awxsetup.baseurl }}"
+    controller_username: "admin"
+    controller_password: "{{ awx_admin_pwd }}"
+    validate_certs: false
+    name: "{{ credential.scm.name }}_regy"
+    organization: "{{ org.name }}"
+    state: present
+    credential_type: Container Registry
+    inputs:
+      username: "{{ credential.scm.user }}"
+      password: "{{ credential.scm.pwd }}"
+
+#Optional, add EE  
+- name: Set EE
+  awx.awx.execution_environment:
+    controller_host: "https://{{ awxsetup.name }}-{{ awxsetup.namespace }}.{{ awxsetup.baseurl }}"
+    controller_username: "admin"
+    controller_password: "{{ awx_admin_pwd }}"
+    validate_certs: false
+    name: "{{ ee.name }}"
+    organization: "{{ org.name }}"
+    state: present
+    credential: "{{ credential.scm.name }}_regy"
+    image: "{{ ee.image }}"
+        
+- name: Add Project with cache timeout
+  awx.awx.project:
+    controller_host: "https://{{ awxsetup.name }}-{{ awxsetup.namespace }}.{{ awxsetup.baseurl }}"
+    controller_username: "admin"
+    controller_password: "{{ awx_admin_pwd }}"
+    validate_certs: false
+    name: "{{ project.name }}"
+    description: "{{ project.desc }}"
+    organization: "{{ org.name }}"
+    scm_url: "{{ project.scm }}"
+    scm_type: "git"
+    scm_credential: "{{ credential.scm.name }}"
+    scm_update_on_launch: True
+    scm_update_cache_timeout: 60
+    state: present
+
+# ADD INVENTORY CREATION HERE!
+
+#Loops over all Job Templates as defince in the << jobtmpl >> Variable
+#Optinal: Add similar loop for Workflow Templates 
+- name: Create Job Templates
+  awx.awx.job_template:
+    controller_host: "https://{{ awxsetup.name }}-{{ awxsetup.namespace }}.{{ awxsetup.baseurl }}"
+    controller_username: "admin"
+    controller_password: "{{ awx_admin_pwd }}"
+    validate_certs: false
+    name: "{{ item.value.name }}"
+    job_type: "{{ item.value.type }}"
+    organization: "{{ org.name }}"
+    inventory: "{{ item.value.inv }}"
+    project:  "{{ project.name }}"
+    playbook: "{{ item.value.pb }}"
+    extra_vars:  "{{ item.value.exv }}"
+    state: "present"
+  with_dict: "{{ jobtmpl }}"
+      

@@ -1,0 +1,52 @@
+- name: Create AAP Controller
+  kubernetes.core.k8s:
+    kubeconfig: "{{ cfg_file }}"
+    state: present
+    definition:
+      apiVersion: automationcontroller.ansible.com/v1beta1
+      kind: AutomationController
+      metadata:
+        name: "{{ awxsetup.name }}"
+        namespace: "{{ awxsetup.namespace }}"
+      spec:
+        create_preload_data: true
+        route_tls_termination_mechanism: Edge
+        garbage_collect_secrets: false
+        ingress_type: Route
+        loadbalancer_port: 80
+        no_log: true
+        image_pull_policy: IfNotPresent
+        projects_storage_size: 20Gi # <- Change PV Size here, if needed
+        auto_upgrade: true
+        task_privileged: false
+        projects_storage_access_mode: ReadWriteMany
+        set_self_labels: true
+        projects_persistence: false
+        replicas: 1
+        admin_user: admin
+        loadbalancer_protocol: http
+        nodeport_port: 30080
+
+#Newer versions of the AAP Operator take some time to create the ressource like the Password. We need to wait
+#WiP: Instead of waiting for 60 Seconds, do a 'wait for secret "{{ awxsetup.name }}-admin-password' to exist ..
+- name: Sleep for 60 seconds and continue with play
+  ansible.builtin.wait_for:
+    timeout: 60
+
+- name: Get Admin PW
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ cfg_file }}"
+    api_version: v1
+    kind: Secret
+    name: "{{ awxsetup.name }}-admin-password"
+    namespace: "{{ awxsetup.namespace }}"
+  register: awxadmin
+  # Password will be in: {{ awxadmin.resources[0].data.password | b64decode }}
+
+- name: AAP-Password
+  debug: 
+    msg: "Password: {{ awxadmin.resources[0].data.password | b64decode }}"
+
+- name: Set AAP-Password-Fact 
+  ansible.builtin.set_fact:
+    awx_admin_pwd: "{{ awxadmin.resources[0].data.password | b64decode }}"

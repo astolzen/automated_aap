@@ -1,0 +1,20 @@
+---
+- name: Remove AWX Setup
+  hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+   - vars.yml
+
+  tasks:
+  - name: Remove controller
+    kubernetes.core.k8s:
+      kubeconfig: "{{ cfg_file }}"
+      state: absent
+      definition:
+        apiVersion: automationcontroller.ansible.com/v1beta1
+        kind: AutomationController
+        metadata:
+          name: "{{ awxsetup.name }}"
+          namespace: "{{ awxsetup.namespace }}"

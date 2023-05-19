@@ -1,0 +1,35 @@
+---
+- name: Roll Out AWX and configure it
+  hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars_files:
+    - vars.yml
+
+  tasks:
+  - name: Rollout AAP on Openshift
+    include_tasks: aap_roll.yml
+
+  - name: Wait for Rollout to respond
+    ansible.builtin.uri:
+      url: "https://{{ awxsetup.name }}-{{ awxsetup.namespace }}.{{ awxsetup.baseurl }}"
+      validate_certs: false
+    register: result
+    until: "result.status == 200"
+    retries: 8
+    delay: 20
+
+# To Subscribe AAP, go to your access.redhat.com account, create a manifest for Satellite and APP you AAP-Subscription
+# Export the Manifest.zip from the Red Hat Page and pit the ZIP File into the Folder of this Playbook
+  - name: Add Subscription
+    awx.awx.license:
+      controller_host: "https://{{ awxsetup.name }}-{{ awxsetup.namespace }}.{{ awxsetup.baseurl }}"
+      controller_username: "admin"
+      controller_password: "{{ awx_admin_pwd }}"
+      validate_certs: false
+      manifest: "manifest.zip"
+
+# At this Point, the AAP-Setup has been rolled out and you can use the aap_configure.yml as an example on how to put your configs into controller
+  - name: Configure AWX on OCP
+    include_tasks: aap_configure.yml
